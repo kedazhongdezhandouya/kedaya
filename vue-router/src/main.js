@@ -2,8 +2,8 @@ import Vue from 'vue'
 import App from './App'
 // import router from './router'
 import VueRouter from 'vue-router'
-import Home from '@/components/home'
-import About from '@/components/about'
+import Home from '@/components/Home'
+import About from '@/components/About'
 
 Vue.config.productionTip = false
 Vue.use(VueRouter)
@@ -13,10 +13,12 @@ const router = new VueRouter({
   routes: [
     {
       path: '/home',
+      name: 'home',
       component: Home
     },
     {
       path: '/about',
+      name: 'xiaoming',
       component: About
     }
   ]

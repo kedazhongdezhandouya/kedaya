@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div>
-      <router-link to='home'>
+      <router-link :to="{name: 'home', params: {id: 456}}">
         <a href="">home</a>
       </router-link>
       <router-link to='about'>
