@@ -1,15 +1,7 @@
-<!--
- * @Author: your name
- * @Date: 2019-11-26 15:59:57
- * @LastEditTime: 2019-11-29 11:11:23
- * @LastEditors: your name
- * @Description: In User Settings Edit
- * @FilePath: \public_htmld:\own_practice\kedaya\github\README.md
- -->
 # github
 
 ### 资料目录
-#### 1.github注册及使用123
+#### 1.github注册及使用
 - [史上最简单的 GitHub 教程](https://blog.csdn.net/qq_35246620/article/details/66973794)  
   
 #### 2.git bash
