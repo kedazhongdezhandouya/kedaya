@@ -13,8 +13,5 @@
     "request": 8000,
     "uploadFile": 8000,
     "downloadFile": 8000
-  },
-  "navigateToMiniProgramAppIdList": [
-    "wxffeebf9ab3a5a4f0"
-  ]
+  }
 }

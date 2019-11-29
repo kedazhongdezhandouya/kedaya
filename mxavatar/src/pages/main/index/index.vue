@@ -1,227 +1,146 @@
-<!-- 主页面 -->
 <template>
-    <div>
-      <div>123456</div>
-      <div>456789</div>
-      <div>{{ newNum }}</div>
-      <button @click="changeNum">???</button>
-      <!-- <img :src="imgUrl" v-if="imgUrl"> -->
-      <canvas canvas-id="mainCanvas"
-              disable-scroll="true"
-              @touchstart="onStart"
-              @touchmove="onMove"
-              @touchend="onEnd"
-              :style="canvansStyle"
-              v-if="!showRecommend"
-              class="mainCanvas"/>
-    </div>
-  </template>
-  <script>
+  <div>
+    <!--  剪裁框与初始图片，剪裁框监听用户手势，获取移动缩放旋转值，images通过css样式显示变化  -->
+    <view class="img" @touchstart="touchstartCallback"  @touchmove="touchmoveCallback" @touchend="touchendCallback"  >
+      <!-- <img :src="url" v-show="url"> -->
+      <image :style="originStyle" :src="originImg.url"></image>
+    </view>
+
+    <!--  canvas长宽设为初始图片设置的长款的两倍，使剪裁得到的图片更清晰，也不至于过大  -->
+    <!-- <canvas class='imgcrop' style="width:{{ width * 2 }}px;height:{{ height * 2}}px;" canvas-id='imgcrop'></canvas> -->
+    <button class="choose-img" @click="uploadTap">change</button>
+  </div>
+</template>
+<script>
   export default {
     data () {
       return {
-        msg: 'test',
-        num: 111,
-        winWidth: 0,               // 窗口可用区域宽度
-        winHeight: 0,              // 窗口可用区域高度
-        canvasWidth: 0,            // 画布宽度
-        canvasHeight: 0,           // 画布高度
-        X: 150,                    // 当前点击的x坐标
-        Y: 150,                    // 当前点击的y坐标
-        tempX: 150,                // 临时的X坐标
-        tempY: 150,                // 临时的Y坐标
-        newX: 150,                 // 拖动后的X坐标
-        newY: 150,                 // 拖动后的Y坐标
-        diffX: 0,                  // 拖动的时候,鼠标点击位置x坐标,跟图片中心的位置x坐标的差
-        diffY: 0,                  // 拖动的时候,鼠标点击位置y坐标,跟图片中心的位置y坐标的差
-        imgUrl: '',                // 要绘入的图片地址
-        imgWidth: 100,             // 图片宽度
-        imgHeight: 100,            // 图片高度
-        tempImgWidth: 100,         // 最终绘入的图片高度
-        tempImgHeight: 100,        // 最终绘入的图片高度
-        rotateAngle: 0,            // 旋转角度
-        rotateTemp: 0,             // 缓存 旋转角度
-        iconSize: 20,              // 操作图标的大小
-        operate: 'draw'            // 操作类型
+        url: '',                                        //选择图片路径
+        width: '',                                      //剪裁框的宽度
+        height: '',                                     //剪裁框的长度
+        originImg: '',                                  //存放原图信息
+        stv: {
+          offsetX: 0,                                   //剪裁图片左上角坐标x
+          offsetY: 0,                                   //剪裁图片左上角坐标y
+          zoom: false,                                  //是否缩放状态
+          distance: 0,                                  //两指距离
+          scale: 1,                                     //缩放倍数
+          rotate: 0                                     //旋转角度
+        }
       }
     },
     computed: {
-      newNum () {
-        return this.num * 2;
+      originStyle () {
+        return `transform: translate(${this.stv.offsetX}px, ${this.stv.offsetY}px); scale: ${this.stv.scale}; rotate: ${this.stv.rotate}deg; width: ${this.originImg.width}px; height: ${this.originImg.height}px`;
       }
     },
-    onLoad (options) {
-      // console.log('load');
-      this.imgUrl = require('../../../../static/images/share-pic.png');
-    },
-    onShow () {
-      // console.log('show');
-    },
-    onHide () {
-      // console.log('hide');
-    },
-    // 分享
-    onShareAppMessage () {
-      return {
-        path: `/pages/main/index/main`,
-        imageUrl: '/static/images/share-pic.png'
+    watch: {
+      url (val) {
+        this.initImg(val);
       }
+    },
+    onLoad () {
+      const device = wx.getSystemInfoSync();
+      this.width = device.windowWidth * 0.8;
+      this.height = device.windowWidth * 0.8 / (102 / 152);
     },
     methods: {
-      changeNum () {
-        this.num *= 2;
+      // 选择图片
+      uploadTap() {
         wx.chooseImage({
+          count: 1,
+          sizeType: ['original'],
+          sourceType: ['album', 'camera'],
           success: (res) => {
-            this.imageUrl = res.tempFilePaths[0];
+            this.url = res.tempFilePaths[0];
+            console.log('url', this.url);
           }
         })
       },
-      onStart (e) {
-        // console.log('start', e);
-        this.operate = 'none';
-
-        // 图标半径
-        let r = this.iconSize;
-        this.tempX = e.touches[0].x;
-        this.tempY = e.touches[0].y;
-        this.operate = 'rotate';
+      // 触摸开始
+      touchstartCallback (e) {
+        console.log('begin', e);
+        
       },
-      onMove (e) {
-        // console.log('move', e);
-        if (this.operate === 'scale' || this.operate === 'rotate') {
-          this.newX = e.touches[0].x;
-          this.newY = e.touches[0].y;
-        }
-        this.draw(); 
+      // 触摸移动
+      touchmoveCallback () {
+        // console.log('move');
       },
-      onEnd (e) {
-        if (this.operate === 'rotate') {
-          this.rotateAngle += this.rotateTemp
-          this.rotateAngle %= 360
-          this.rotateTemp = 0
-          // console.log('end')
-        }
-        this.operate = 'none'
+      // 触摸结束
+      touchendCallback () {
+        // console.log('end');
       },
-      draw () {
-        // const ctx = global.mpvue.createCanvasContext('mainCanvas');
-        // // console.log(this.X, this.newX, this.tempX);
-        // if (this.operate === 'scale') {
-        //   let scaleX = (this.X - this.newX) / (this.X - this.tempX);
-        //   let scaleY = (this.Y - this.newY) / (this.Y - this.tempY);
-        //   console.log(scaleX, scaleY);
-        //   let scale = scaleX < scaleY ? scaleX : scaleY;
-        //   this.tempImgWidth = this.imgWidth * scale;
-        //   this.tempImgHeight = this.imgHeight * scale;
-        //   // 设置新的原点
-        //   let x = -this.tempImgWidth / 2
-        //   let y = -this.tempImgHeight / 2
-        //   this.imgUrl = require('../../../../static/images/share-pic.png');
-        //   console.log(x, y, this.tempImgWidth, this.tempImgHeight);
-        //   ctx.drawImage(this.imgUrl, x, y, this.tempImgWidth, this.tempImgHeight);
-        //   ctx.draw();
-        // }
-        // 判断是否超出边界
-        if (this.X > this.canvasWidth + this.tempImgWidth / 2 - 20) {
-          this.X = this.canvasWidth + this.tempImgWidth / 2 - 20
-        }
-        if (this.Y > this.canvasHeight + this.tempImgHeight / 2 - 20) {
-          this.Y = this.canvasHeight + this.tempImgHeight / 2 - 20
-        }
-        if (this.X < -this.tempImgWidth / 2 + 20) {
-          this.X = -this.tempImgWidth / 2 + 20
-        }
-        if (this.Y < -this.tempImgHeight / 2 + 20) {
-          this.Y = -this.tempImgHeight / 2 + 20
-        }
-        let r = this.iconSize / 2     // 图标半径
-        let d = this.iconSize         // 图标直径
-        if (this.operate === 'delete') {
-          // this.X = 150
-          // this.Y = 150
-          // this.rotateAngle = 0
-          // this.imgHeight = 100
-          // this.imgWidth = 100
-          // this.tempImgHeight = 100
-          // this.tempImgWidth = 100
-          // this.imgUrl = ''
-          // ctx.moveTo(0, 0)
-          // ctx.clearRect(0, 0, 300, 300)
-          // ctx.draw()
-          // return
-          this.clearCanvas()
-          return
-        }
-        const ctx = wx.createCanvasContext('mainCanvas')
-        if (this.operate === 'scale') {
-          let scaleX = (this.X - this.newX) / (this.X - this.tempX)
-          let scaleY = (this.Y - this.newY) / (this.Y - this.tempY)
-          let scale = scaleX < scaleY ? scaleX : scaleY
-          this.tempImgWidth = this.imgWidth * scale
-          this.tempImgHeight = this.imgHeight * scale
-        }
-        if (this.operate === 'rotate') {
-          this.rotateTemp = this.getAngle(this.tempX, this.tempX, this.newX, this.newY)
-        }
-        // 中心位移
-        ctx.translate(this.X, this.Y)
-        // 设置新的原点
-        let x = -this.tempImgWidth / 2
-        let y = -this.tempImgHeight / 2
-        // 新旧2种角度,分开旋转
-        ctx.rotate(this.rotateTemp * Math.PI / 180)
-        ctx.rotate(this.rotateAngle * Math.PI / 180)
-        if (!this.imgUrl) return
-        ctx.drawImage(this.imgUrl, x, y, this.tempImgWidth, this.tempImgHeight)
-        // 旋转回来,保证除了图片以外的其他元素不被旋转
-        ctx.rotate((360 - this.rotateTemp) * Math.PI / 180)
-        ctx.rotate((360 - this.rotateAngle) * Math.PI / 180)
-        // 画边框
-        ctx.setStrokeStyle('#fd749c')
-        ctx.setLineDash([5, 5], 10);
-        ctx.strokeRect(x, y, this.tempImgWidth, this.tempImgHeight)
-        // 画 删除 按钮
-        ctx.drawImage('/static/images/add-icon.png', x - r, y - r, d, d)
-        // 画 旋转 按钮
-        ctx.drawImage('/static/images/add-icon.png', x + this.tempImgWidth - r, y - r, d, d)
-        // 画 缩放 按钮
-        ctx.drawImage('/static/images/add-icon.png', x + this.tempImgWidth - r, y + this.tempImgHeight - r, d, d)
-        ctx.draw()
-      },
-      // 获取旋转角度
-      getAngle (px, py, mx, my) {//获得人物中心和鼠标坐标连线，与y轴正半轴之间的夹角
-        let x = Math.abs(px - mx);
-        let y = Math.abs(py - my);
-        let z = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-        let cos = y / z;
-        let radina = Math.acos(cos);//用反三角函数求弧度
-        let angle = Math.floor(180 / (Math.PI / radina));//将弧度转换成角度
-        if (mx > px && my > py) {//鼠标在第四象限
-          angle = 180 - angle;
-        }
-        if (mx === px && my > py) {//鼠标在y轴负方向上
-          angle = 180;
-        }
-        if (mx > px && my === py) {//鼠标在x轴正方向上
-          angle = 90;
-        }
-        if (mx < px && my > py) {//鼠标在第三象限
-          angle = 180 + angle;
-        }
-        if (mx < px && my === py) {//鼠标在x轴负方向
-          angle = 270;
-        }
-        if (mx < px && my < py) {//鼠标在第二象限
-          angle = 360 - angle;
-        }
-        return angle;
+      // 初始化图片
+      initImg (url) {
+        wx.getImageInfo({
+          src: url,
+          success: (res) => {
+            console.log(res);
+            // 获取图片宽高比
+            let innerAspectRadio = res.width / res.height;
+            console.log('ssss', innerAspectRadio, this.width / this.height, this.width, this.height);
+            if (innerAspectRadio < this.width / this.height) {
+              this.originImg = {
+                url: url,
+                width: this.width,
+                height: this.width / innerAspectRadio
+              },
+              this.stv = {
+                offsetX: 0,
+                offsetY: 0 - Math.abs((this.height - this.width / innerAspectRadio) / 2),
+                zoom: false, //是否缩放状态
+                distance: 0,  //两指距离
+                scale: 1,  //缩放倍数
+                rotate: 0
+              }
+            } else {
+              this.originImg = {
+                url: url,
+                width: this.height * innerAspectRadio,
+                height: this.height
+              },
+              this.stv = {
+                offsetX: 0 - Math.abs((this.width - this.height * innerAspectRadio) / 2),
+                offsetY: 0,
+                zoom: false, //是否缩放状态
+                distance: 0,  //两指距离
+                scale: 1,  //缩放倍数
+                rotate: 0
+              }
+            }
+          }
+        })
       }
     }
-   }
-  </script>
-  <style>
-    .mainCanvas {
-      /* background-color: antiquewhite; */
-    }
-  </style>
-  
+  }
+</script>
+<style>
+page {
+  width: 100%;
+  height: 100%;
+}
+.container {
+  width: 100%;
+  height: 100%;
+  background: #eee;
+  overflow: hidden;
+}
+.cropper {
+  width: 100%;
+  height: 100%;
+}
+.img {
+  margin: 20rpx auto;
+  display: block;
+  background: #fff;
+}
+.choose-img {
+  width: 40%;
+  text-align: center;
+  padding: 30rpx;
+  border: 1px solid #fff;
+  margin: 20rpx auto;
+  background: #000;
+  color: #fff;
+}
+</style>
