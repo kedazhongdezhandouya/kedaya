@@ -1,21 +1,21 @@
 <template>
-    <div class="container">
-      <!--  剪裁框与初始图片，剪裁框监听用户手势，获取移动缩放旋转值，images通过css样式显示变化  -->
-      <div class="img" :style="borderStyle" @touchstart="touchstartCallback"  @touchmove="touchmoveCallback" @touchend="touchendCallback"  >
-        <img :style="originStyle" :src="originImg.url">
-      </div>
-      
-      <!--  canvas长宽设为初始图片设置的长款的两倍，使剪裁得到的图片更清晰，也不至于过大  -->
-      <canvas class='imgcrop' :style="canvasStyle" canvas-id='imgcrop'></canvas>
-      <!-- <button class="choose-img" v-if="!url" @click="uploadTap">change</button> -->
+  <div class="container">
+    <div class="img" :style="borderStyle" @touchstart="touchstartCallback"  @touchmove="touchmoveCallback" @touchend="touchendCallback">
+      <img :style="originStyle" :src="originImg.url" class="transform-img">
     </div>
-  </template>
+    <!--  canvas长宽设为初始图片设置的长宽的两倍，使剪裁得到的图片更清晰，也不至于过大  -->
+    <div class="footer">
+      <div @click="cropperImg">打印</div>
+    </div>
+    <canvas class='imgcrop' :style="canvasStyle" canvas-id='imgcrop'></canvas>
+  </div>
+</template>
   <script>
     export default {
       props: ['url'],
       data () {
         return {
-          // url: '',                                        //选择图片路径
+          // url: '',                                     //选择图片路径
           width: '',                                      //剪裁框的宽度
           height: '',                                     //剪裁框的长度
           originImg: '',                                  //存放原图信息
@@ -29,7 +29,7 @@
             scale: 1,                                     //缩放倍数
             rotate: 0                                     //旋转角度
           },
-          towPoint: {                                     //旋转数据
+          twoPoint: {                                     //旋转数据
             x1: 0,                                        //手指1坐标x
             y1: 0,                                        //手指1坐标y
             x2: 0,                                        //手指2坐标x
@@ -44,8 +44,7 @@
         },
         // 图片动态样式
         originStyle () {
-          // return `transform: translate(${this.stv.offsetX}px, ${this.stv.offsetY}px) scale: (${this.stv.scale}) rotate: (${this.stv.rotate}deg); width: ${this.originImg.width}px; height: ${this.originImg.height}px`;
-          return `transform: scale: (${this.stv.scale}); width: ${this.originImg.width}px; height: ${this.originImg.height}px`;
+          return `transform: translate(${this.stv.offsetX}px, ${this.stv.offsetY}px) scale(${this.stv.scale}) rotate(${this.stv.rotate}deg); width: ${this.originImg.width}px; height: ${this.originImg.height}px`;
         },
         // canvas样式
         canvasStyle () {
@@ -102,7 +101,6 @@
         },
         // 图片手势动态缩放
         touchmoveCallback (e) {
-          // this.throttle(10, 10, e);
           this.touchmove(e);
         },
         // 处理触摸移动事件
@@ -135,16 +133,14 @@
   
             // 旋转前后两点距离
             let vector1 = this.vector(preTwoPoint.x1, preTwoPoint.y1, preTwoPoint.x2, preTwoPoint.y2);
-            let vector2 = this.vector(this.twoPoint.x1, this.twoPoint.y1, this.twoPoint.x1, this.twoPoint.y2);
+            let vector2 = this.vector(this.twoPoint.x1, this.twoPoint.y1, this.twoPoint.x2, this.twoPoint.y2);
             let cos = this.calculatePM(vector1, vector2);
+
             // 旋转角度
             let angle = Math.acos(cos) * 180 / Math.PI;
             let direction = this.calculateCP(vector1, vector2);
             // 最终旋转角度值
             let allDeg = direction * angle;
-            wx.showToast({
-              title: allDeg + ''
-            })
   
             if (Math.abs(allDeg) > 1) {
               this.stv.rotate += allDeg;
@@ -173,8 +169,8 @@
         // 计算向量
         vector (x1, y1, x2, y2) {
           return {
-            x: x1 - x2,
-            y: y1 - y2
+            x: x2 - x1,
+            y: y2 - y1
           }
         },
         // 计算点乘(角度余弦值)
@@ -184,30 +180,6 @@
         // 计算叉乘(方向)
         calculateCP (vector1, vector2) {
           return (vector1.x * vector2.y - vector2.x * vector1.y) > 0 ? 1 : -1;
-        },
-        /**
-         * fn: 延时函数
-         * delay: 延迟多长时间
-         * mustRun: 至少多长时间触发一次
-         * param: 参数
-         */
-        throttle (delay, mustRun, param) {
-          var timer = null,        // 计时器
-              previous = null,     // 上次记录时间
-              now = new Date().getTime();    // 当前时间
-          if (!previous) {
-            previous = now;
-          }
-          var remaining = now - previous;
-          if (mustRun && remaining >= mustRun) {
-            this.touchmove(param);
-            previous = now;
-          } else {
-            clearTimeout(timer);
-            timer = setTimeout(() => {
-              this.touchmove(param);
-            }, delay);
-          }
         },
         // 触摸结束
         touchendCallback (e) {
@@ -253,14 +225,20 @@
               }
             }
           })
+        },
+        // canvas剪裁图片
+        cropperImg () {
+          wx.showLoading({
+            title: 'loading',
+            mask: true
+          })
+          let ctx = wx.createCanvasContext('imgcrop');
+          ctx.save();
         }
       }
     }
   </script>
   <style>
-    page {
-      height: 100%;
-    }
   .container {
     position: relative;
     width: 100%;
@@ -284,7 +262,7 @@
      overflow: hidden;
      background: #eee;
   }
-  .img image {
+  .transform-img {
     height: 400px;
   }
   .imgcrop {
