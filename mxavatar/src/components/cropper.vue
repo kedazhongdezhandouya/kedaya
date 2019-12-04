@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="container" catchtouchmove="true">
     <div class="img" :style="borderStyle" @touchstart="touchstartCallback"  @touchmove="touchmoveCallback" @touchend="touchendCallback">
       <img :style="originStyle" :src="originImg.url" class="transform-img">
     </div>
@@ -228,12 +228,43 @@
         },
         // canvas剪裁图片
         cropperImg () {
-          wx.showLoading({
-            title: 'loading',
-            mask: true
-          })
+          // wx.showLoading({
+          //   title: 'loading',
+          //   mask: true
+          // })
           let ctx = wx.createCanvasContext('imgcrop');
           ctx.save();
+          // 缩放偏移值
+          let x = (this.originImg.width - this.originImg.width * this.stv.scale) / 2;
+          let y = (this.originImg.height - this.originImg.height * this.stv.scale) / 2;
+
+          // 画布中点坐标转移到图片中心
+          let movex = (this.stv.offsetX + x) * 2 + this.originImg.width * this.stv.scale;
+          let movey = (this.stv.offsetY + y) * 2 + this.originImg.height * this.stv.scale;
+          ctx.translate(movex, movey);
+          ctx.rotate(this.stv.rotate * Math.PI / 180);
+          ctx.translate(-movex, -movey);
+          ctx.drawImage(this.originImg.url, (this.stv.offsetX + x) * 2, (this.stv.offsetY + y) * 2, this.originImg.width * 2 * this.stv.scale, this.originImg.height * 2 * this.stv.scale);
+          ctx.restore();
+          ctx.draw(false, ()=> {
+            wx.canvasToTempFilePath({
+              canvasId: 'imgcrop',
+              success: (response) => {
+                console.log(response.tempFilePath);
+                this.$emit('show-img', response.tempFilePath);
+                // _this.triggerEvent("getCropperImg", { url: response.tempFilePath })
+                // wx.hideLoading();
+              },
+              fail( e ) {
+                console.log( e );
+                wx.hideLoading();
+                wx.showToast({
+                  title: '生成图片失败',
+                  icon: 'none'
+                })
+              }
+            }, this)
+          });
         }
       }
     }
@@ -244,15 +275,6 @@
     width: 100%;
     height: 100%;
     background: #000;
-  }
-  .choose-img {
-    width: 40%;
-    text-align: center;
-    padding: 30rpx;
-    border: 1px solid #fff;
-    margin: 20rpx auto;
-    background: #000;
-    color: #fff;
   }
   .img {
      position: absolute;
